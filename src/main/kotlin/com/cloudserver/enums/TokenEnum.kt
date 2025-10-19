@@ -20,5 +20,6 @@ enum class TokenEnum {
     XLM,
     BCH,
     VET,
-    FIL
+    FIL,
+    IRT  // Iranian Rial for Nobitex pairs
 }

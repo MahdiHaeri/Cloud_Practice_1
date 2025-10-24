@@ -36,12 +36,23 @@ class NobitexService(
 
     fun getOrderbook(symbol: String): Mono<NobitexOrderbookResponseDto> {
         logger.debug("Fetching orderbook for symbol: $symbol from Nobitex")
+        val startTime = System.nanoTime()
+
         return webClient.get()
             .uri("/v3/orderbook/$symbol")
             .retrieve()
             .bodyToMono(NobitexOrderbookResponseDto::class.java)
+            .doOnSuccess { response ->
+                val duration = System.nanoTime() - startTime
+                metricsService.recordNobitexResponseTime(duration)
+                metricsService.recordNobitexSuccess()
+                logger.debug("Successfully fetched Nobitex orderbook for $symbol in ${duration / 1_000_000}ms")
+            }
             .doOnError { error ->
-                logger.error("Error calling Nobitex orderbook API for symbol: $symbol", error)
+                val duration = System.nanoTime() - startTime
+                metricsService.recordNobitexResponseTime(duration)
+                metricsService.recordNobitexFailure()
+                logger.error("Error calling Nobitex orderbook API for symbol: $symbol after ${duration / 1_000_000}ms", error)
             }
     }
 

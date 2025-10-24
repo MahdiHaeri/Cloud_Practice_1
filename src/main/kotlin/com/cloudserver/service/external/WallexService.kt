@@ -60,12 +60,23 @@ class WallexService(
      */
     fun getMarkets(): Mono<WallexMarketResponse> {
         logger.debug("Fetching markets from Wallex")
+        val startTime = System.nanoTime()
+
         return webClient.get()
             .uri("/hector/web/v1/markets")
             .retrieve()
             .bodyToMono(WallexMarketResponse::class.java)
+            .doOnSuccess { response ->
+                val duration = System.nanoTime() - startTime
+                metricsService.recordWallexResponseTime(duration)
+                metricsService.recordWallexSuccess()
+                logger.debug("Successfully fetched Wallex markets in ${duration / 1_000_000}ms")
+            }
             .doOnError { error ->
-                logger.error("Error calling Wallex markets API", error)
+                val duration = System.nanoTime() - startTime
+                metricsService.recordWallexResponseTime(duration)
+                metricsService.recordWallexFailure()
+                logger.error("Error calling Wallex markets API after ${duration / 1_000_000}ms", error)
             }
     }
 

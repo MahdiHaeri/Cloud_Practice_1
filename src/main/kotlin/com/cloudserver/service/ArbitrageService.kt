@@ -28,11 +28,12 @@ class ArbitrageService(
         val nobitexData = nobitexService.getOrderbook("${source}${destination}")
 
         return Mono.zip(wallexData, nobitexData) { wallex, nobitex ->
-            val symbol = "${source}${destination}".lowercase()
+            val symbol = "${destination}TMN"  // Wallex uses TMN as quote currency
 
-            // Get Wallex prices
-            val wallexBidPrice = wallex.result?.symbols?.get(symbol)?.stats?.bidPrice?.toBigDecimalOrNull()
-            val wallexAskPrice = wallex.result?.symbols?.get(symbol)?.stats?.askPrice?.toBigDecimalOrNull()
+            // Get Wallex prices - find the market by symbol
+            val wallexMarket = wallex.result?.markets?.find { it.symbol?.equals(symbol, ignoreCase = true) == true }
+            val wallexBidPrice = wallexMarket?.fairPrice?.bid?.toBigDecimalOrNull() ?: wallexMarket?.price?.toBigDecimalOrNull()
+            val wallexAskPrice = wallexMarket?.fairPrice?.ask?.toBigDecimalOrNull() ?: wallexMarket?.price?.toBigDecimalOrNull()
 
             // Get Nobitex prices
             val nobitexBidPrice = nobitex.bids?.firstOrNull()?.get(0)?.toBigDecimalOrNull()
@@ -103,4 +104,3 @@ data class ArbitrageDetail(
     val profitPercentage: BigDecimal,
     val profit: BigDecimal
 )
-

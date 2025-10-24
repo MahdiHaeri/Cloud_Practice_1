@@ -10,40 +10,28 @@ data class WallexMarketResponse(
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class WallexResult(
-    val symbols: Map<String, WallexSymbol>?
+    val markets: List<WallexMarket>?
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-data class WallexSymbol(
+data class WallexMarket(
     val symbol: String?,
-    @JsonProperty("stats")
-    val stats: WallexStats?,
-    @JsonProperty("price")
-    val price: WallexPrice?
+    @JsonProperty("base_asset")
+    val baseAsset: String?,
+    @JsonProperty("quote_asset")
+    val quoteAsset: String?,
+    val price: String?,
+    @JsonProperty("change_24h")
+    val change24h: Double?,
+    @JsonProperty("volume_24h")
+    val volume24h: Double?,
+    @JsonProperty("fair_price")
+    val fairPrice: WallexFairPrice?
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-data class WallexStats(
-    @JsonProperty("bidPrice")
-    val bidPrice: String?,
-    @JsonProperty("askPrice")
-    val askPrice: String?,
-    @JsonProperty("24h_ch")
-    val change24h: String?,
-    @JsonProperty("7d_ch")
-    val change7d: String?
+data class WallexFairPrice(
+    val ask: String?,
+    val bid: String?,
+    val threshold: String?
 )
-
-@JsonIgnoreProperties(ignoreUnknown = true)
-data class WallexPrice(
-    val min: String?,
-    val max: String?,
-    val change: WallexChange?
-)
-
-@JsonIgnoreProperties(ignoreUnknown = true)
-data class WallexChange(
-    val percentage: String?,
-    val value: String?
-)
-

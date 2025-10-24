@@ -33,10 +33,18 @@ class WallexService(
         logger.info("Getting exchange price for $source to $destination")
         try {
             val response = getMarkets().block()
-            response?.result?.symbols?.let { symbols ->
-                val symbol = "${source}${destination}".lowercase()
-                symbols[symbol]?.let { marketData ->
-                    logger.info("Market data for $symbol: bidPrice=${marketData.stats?.bidPrice}, askPrice=${marketData.stats?.askPrice}")
+            response?.result?.markets?.let { markets ->
+                // Wallex uses TMN (Toman) as quote currency, symbols are like USDTTMN, BTCTMN
+                // We need to find the market where base_asset matches our token
+                val symbol = "${destination}TMN"
+                val market = markets.find { it.symbol?.equals(symbol, ignoreCase = true) == true }
+
+                market?.let { marketData ->
+                    val bidPrice = marketData.fairPrice?.bid ?: marketData.price
+                    val askPrice = marketData.fairPrice?.ask ?: marketData.price
+                    logger.info("Market data for $symbol: bidPrice=$bidPrice, askPrice=$askPrice, lastPrice=${marketData.price}")
+                } ?: run {
+                    logger.warn("Symbol $symbol not found in Wallex markets. Available symbols: ${markets.take(5).mapNotNull { it.symbol }}")
                 }
             }
         } catch (e: Exception) {

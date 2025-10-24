@@ -25,13 +25,15 @@ class ArbitrageService(
         logger.info("Calculating arbitrage for $source/$destination between Wallex and Nobitex")
 
         val wallexData = wallexService.getMarkets()
-        val nobitexData = nobitexService.getOrderbook("${source}${destination}")
+        // Nobitex format: base currency first, then quote currency (e.g., BTCUSDT for BTC priced in USDT)
+        val nobitexSymbol = "${destination}${source}"
+        val nobitexData = nobitexService.getOrderbook(nobitexSymbol)
 
         return Mono.zip(wallexData, nobitexData) { wallex, nobitex ->
-            val symbol = "${destination}TMN"  // Wallex uses TMN as quote currency
+            val wallexSymbol = "${destination}TMN"  // Wallex uses TMN as quote currency
 
             // Get Wallex prices - find the market by symbol
-            val wallexMarket = wallex.result?.markets?.find { it.symbol?.equals(symbol, ignoreCase = true) == true }
+            val wallexMarket = wallex.result?.markets?.find { it.symbol?.equals(wallexSymbol, ignoreCase = true) == true }
             val wallexBidPrice = wallexMarket?.fairPrice?.bid?.toBigDecimalOrNull() ?: wallexMarket?.price?.toBigDecimalOrNull()
             val wallexAskPrice = wallexMarket?.fairPrice?.ask?.toBigDecimalOrNull() ?: wallexMarket?.price?.toBigDecimalOrNull()
 
@@ -39,8 +41,8 @@ class ArbitrageService(
             val nobitexBidPrice = nobitex.bids?.firstOrNull()?.get(0)?.toBigDecimalOrNull()
             val nobitexAskPrice = nobitex.asks?.firstOrNull()?.get(0)?.toBigDecimalOrNull()
 
-            logger.info("Wallex - Bid: $wallexBidPrice, Ask: $wallexAskPrice")
-            logger.info("Nobitex - Bid: $nobitexBidPrice, Ask: $nobitexAskPrice")
+            logger.info("Wallex ($wallexSymbol) - Bid: $wallexBidPrice, Ask: $wallexAskPrice")
+            logger.info("Nobitex ($nobitexSymbol) - Bid: $nobitexBidPrice, Ask: $nobitexAskPrice")
 
             // Calculate arbitrage opportunities
             val opportunities = mutableListOf<ArbitrageDetail>()
@@ -80,7 +82,7 @@ class ArbitrageService(
             }
 
             ArbitrageOpportunity(
-                symbol = "${source}${destination}",
+                symbol = "${destination}/${source}",
                 opportunities = opportunities,
                 hasOpportunity = opportunities.isNotEmpty()
             )

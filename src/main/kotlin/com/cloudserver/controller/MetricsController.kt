@@ -12,7 +12,7 @@ class MetricsController(
     private val metricsService: MetricsService
 ) {
 
-    @GetMapping("/summary")
+    @GetMapping
     fun getMetricsSummary(): ResponseEntity<Map<String, Any>> {
         return ResponseEntity.ok(metricsService.getMetricsSummary())
     }

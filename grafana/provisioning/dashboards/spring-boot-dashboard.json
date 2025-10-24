@@ -179,7 +179,32 @@
           },
           "unit": "s"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "__systemRef": "hideSeriesFrom",
+            "matcher": {
+              "id": "byNames",
+              "options": {
+                "mode": "exclude",
+                "names": [
+                  "{__name__=\"exchange_response_time_seconds_max\", application=\"CloudServer\", environment=\"production\", exchange=\"nobitex\", exported_application=\"CloudServer\", instance=\"host.docker.internal:8080\", job=\"cloudserver\"}"
+                ],
+                "prefix": "All except:",
+                "readOnly": true
+              }
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": false,
+                  "tooltip": true,
+                  "viz": true
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
@@ -209,21 +234,27 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "PBFA97CFB590B2093"
           },
-          "editorMode": "code",
-          "expr": "exchange_response_time_seconds{quantile=\"0.95\"}",
-          "legendFormat": "{{exchange}} - p95",
+          "editorMode": "builder",
+          "expr": "exchange_response_time_seconds_max{exchange=\"nobitex\"}",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         },
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "PBFA97CFB590B2093"
           },
-          "expr": "exchange_response_time_seconds{quantile=\"0.99\"}",
-          "legendFormat": "{{exchange}} - p99",
+          "editorMode": "builder",
+          "expr": "exchange_response_time_seconds_max{exchange=\"wallex\"}",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "__auto",
+          "range": true,
           "refId": "B"
         }
       ],

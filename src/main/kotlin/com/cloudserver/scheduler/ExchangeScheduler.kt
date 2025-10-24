@@ -2,6 +2,7 @@ package com.cloudserver.scheduler
 
 import com.cloudserver.enums.TokenEnum
 import com.cloudserver.service.ArbitrageService
+import com.cloudserver.service.TelegramBotService
 import com.cloudserver.service.external.NobitexService
 import com.cloudserver.service.external.WallexService
 import org.slf4j.LoggerFactory
@@ -12,7 +13,8 @@ import org.springframework.stereotype.Service
 class ExchangeScheduler(
     private val nobitexService: NobitexService,
     private val wallexService: WallexService,
-    private val arbitrageService: ArbitrageService
+    private val arbitrageService: ArbitrageService,
+    private val telegramBotService: TelegramBotService
 ) {
 
     private val logger = LoggerFactory.getLogger(ExchangeScheduler::class.java)
@@ -27,6 +29,14 @@ class ExchangeScheduler(
                     opportunity.opportunities.forEach { detail ->
                         logger.info("  💰 Buy from ${detail.buyExchange} at ${detail.buyPrice} TMN, Sell on ${detail.sellExchange} at ${detail.sellPrice} TMN")
                         logger.info("  📈 Profit: ${detail.profit} TMN (${detail.profitPercentage}%)")
+                    }
+
+                    // Send Telegram notification to all subscribers
+                    try {
+                        telegramBotService.sendArbitrageAlert(opportunity)
+                        logger.info("Arbitrage alert sent to subscribers")
+                    } catch (e: Exception) {
+                        logger.error("Failed to send Telegram alerts", e)
                     }
                 } else {
                     logger.info("No arbitrage opportunity for ${opportunity.symbol}")

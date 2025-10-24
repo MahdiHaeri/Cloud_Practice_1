@@ -1,5 +1,7 @@
 package com.cloudserver.service
 
+import com.cloudserver.dto.ArbitrageDetail
+import com.cloudserver.dto.ArbitrageOpportunity
 import com.cloudserver.enums.TokenEnum
 import com.cloudserver.service.external.NobitexService
 import com.cloudserver.service.external.WallexService
@@ -98,18 +100,3 @@ class ArbitrageService(
         }
     }
 }
-
-data class ArbitrageOpportunity(
-    val symbol: String,
-    val opportunities: List<ArbitrageDetail>,
-    val hasOpportunity: Boolean
-)
-
-data class ArbitrageDetail(
-    val buyExchange: String,
-    val sellExchange: String,
-    val buyPrice: BigDecimal,
-    val sellPrice: BigDecimal,
-    val profitPercentage: BigDecimal,
-    val profit: BigDecimal
-)

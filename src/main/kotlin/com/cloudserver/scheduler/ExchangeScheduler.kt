@@ -19,14 +19,14 @@ class ExchangeScheduler(
 
     @Scheduled(fixedDelay = 1000)
     fun getExchangePrice() {
-        // Calculate and log arbitrage opportunities
-        arbitrageService.calculateArbitrage(TokenEnum.USDT, TokenEnum.BTC)
+        // Calculate and log arbitrage opportunities for BTC in TMN/IRT
+        arbitrageService.calculateArbitrage(TokenEnum.BTC)
             .subscribe { opportunity ->
                 if (opportunity.hasOpportunity) {
                     logger.info("🚨 ARBITRAGE OPPORTUNITY FOUND for ${opportunity.symbol}!")
                     opportunity.opportunities.forEach { detail ->
-                        logger.info("  💰 Buy from ${detail.buyExchange} at ${detail.buyPrice}, Sell on ${detail.sellExchange} at ${detail.sellPrice}")
-                        logger.info("  📈 Profit: ${detail.profit} (${detail.profitPercentage}%)")
+                        logger.info("  💰 Buy from ${detail.buyExchange} at ${detail.buyPrice} TMN, Sell on ${detail.sellExchange} at ${detail.sellPrice} TMN")
+                        logger.info("  📈 Profit: ${detail.profit} TMN (${detail.profitPercentage}%)")
                     }
                 } else {
                     logger.info("No arbitrage opportunity for ${opportunity.symbol}")

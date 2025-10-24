@@ -19,44 +19,51 @@ class ArbitrageService(
 
     /**
      * Calculate arbitrage opportunity between Wallex and Nobitex
-     * Returns the percentage difference and which exchange to buy/sell from
+     * Both exchanges quote assets in Iranian currency:
+     * - Wallex uses TMN (Toman)
+     * - Nobitex uses IRT (Iranian Rial)
+     * Note: 1 Toman = 10 Rials
      */
-    fun calculateArbitrage(source: TokenEnum, destination: TokenEnum): Mono<ArbitrageOpportunity> {
-        logger.info("Calculating arbitrage for $source/$destination between Wallex and Nobitex")
+    fun calculateArbitrage(asset: TokenEnum): Mono<ArbitrageOpportunity> {
+        logger.info("Calculating arbitrage for $asset between Wallex and Nobitex")
 
         val wallexData = wallexService.getMarkets()
-        // Nobitex format: base currency first, then quote currency (e.g., BTCUSDT for BTC priced in USDT)
-        val nobitexSymbol = "${destination}${source}"
+        val wallexSymbol = "${asset}TMN"
+
+        // Nobitex uses IRT suffix for Iranian Rial
+        val nobitexSymbol = "${asset}IRT"
         val nobitexData = nobitexService.getOrderbook(nobitexSymbol)
 
         return Mono.zip(wallexData, nobitexData) { wallex, nobitex ->
-            val wallexSymbol = "${destination}TMN"  // Wallex uses TMN as quote currency
-
             // Get Wallex prices - find the market by symbol
             val wallexMarket = wallex.result?.markets?.find { it.symbol?.equals(wallexSymbol, ignoreCase = true) == true }
-            val wallexBidPrice = wallexMarket?.fairPrice?.bid?.toBigDecimalOrNull() ?: wallexMarket?.price?.toBigDecimalOrNull()
-            val wallexAskPrice = wallexMarket?.fairPrice?.ask?.toBigDecimalOrNull() ?: wallexMarket?.price?.toBigDecimalOrNull()
+            val wallexBidPriceToman = wallexMarket?.fairPrice?.bid?.toBigDecimalOrNull() ?: wallexMarket?.price?.toBigDecimalOrNull()
+            val wallexAskPriceToman = wallexMarket?.fairPrice?.ask?.toBigDecimalOrNull() ?: wallexMarket?.price?.toBigDecimalOrNull()
 
-            // Get Nobitex prices
-            val nobitexBidPrice = nobitex.bids?.firstOrNull()?.get(0)?.toBigDecimalOrNull()
-            val nobitexAskPrice = nobitex.asks?.firstOrNull()?.get(0)?.toBigDecimalOrNull()
+            // Get Nobitex prices (in Rials - IRT)
+            val nobitexBidPriceRial = nobitex.bids?.firstOrNull()?.get(0)?.toBigDecimalOrNull()
+            val nobitexAskPriceRial = nobitex.asks?.firstOrNull()?.get(0)?.toBigDecimalOrNull()
 
-            logger.info("Wallex ($wallexSymbol) - Bid: $wallexBidPrice, Ask: $wallexAskPrice")
-            logger.info("Nobitex ($nobitexSymbol) - Bid: $nobitexBidPrice, Ask: $nobitexAskPrice")
+            // Convert Nobitex prices from Rial (IRT) to Toman (divide by 10)
+            val nobitexBidPrice = nobitexBidPriceRial?.divide(BigDecimal(10), 2, RoundingMode.HALF_UP)
+            val nobitexAskPrice = nobitexAskPriceRial?.divide(BigDecimal(10), 2, RoundingMode.HALF_UP)
+
+            logger.info("Wallex ($wallexSymbol) - Bid: $wallexBidPriceToman TMN, Ask: $wallexAskPriceToman TMN")
+            logger.info("Nobitex ($nobitexSymbol) - Bid: $nobitexBidPrice TMN (${nobitexBidPriceRial} IRT), Ask: $nobitexAskPrice TMN (${nobitexAskPriceRial} IRT)")
 
             // Calculate arbitrage opportunities
             val opportunities = mutableListOf<ArbitrageDetail>()
 
             // Opportunity 1: Buy from Wallex, Sell on Nobitex
-            if (wallexAskPrice != null && nobitexBidPrice != null && nobitexBidPrice > wallexAskPrice) {
-                val profit = nobitexBidPrice.subtract(wallexAskPrice)
-                val profitPercentage = profit.divide(wallexAskPrice, 4, RoundingMode.HALF_UP)
+            if (wallexAskPriceToman != null && nobitexBidPrice != null && nobitexBidPrice > wallexAskPriceToman) {
+                val profit = nobitexBidPrice.subtract(wallexAskPriceToman)
+                val profitPercentage = profit.divide(wallexAskPriceToman, 4, RoundingMode.HALF_UP)
                     .multiply(BigDecimal(100))
                 opportunities.add(
                     ArbitrageDetail(
                         buyExchange = "Wallex",
                         sellExchange = "Nobitex",
-                        buyPrice = wallexAskPrice,
+                        buyPrice = wallexAskPriceToman,
                         sellPrice = nobitexBidPrice,
                         profitPercentage = profitPercentage,
                         profit = profit
@@ -65,8 +72,8 @@ class ArbitrageService(
             }
 
             // Opportunity 2: Buy from Nobitex, Sell on Wallex
-            if (nobitexAskPrice != null && wallexBidPrice != null && wallexBidPrice > nobitexAskPrice) {
-                val profit = wallexBidPrice.subtract(nobitexAskPrice)
+            if (nobitexAskPrice != null && wallexBidPriceToman != null && wallexBidPriceToman > nobitexAskPrice) {
+                val profit = wallexBidPriceToman.subtract(nobitexAskPrice)
                 val profitPercentage = profit.divide(nobitexAskPrice, 4, RoundingMode.HALF_UP)
                     .multiply(BigDecimal(100))
                 opportunities.add(
@@ -74,7 +81,7 @@ class ArbitrageService(
                         buyExchange = "Nobitex",
                         sellExchange = "Wallex",
                         buyPrice = nobitexAskPrice,
-                        sellPrice = wallexBidPrice,
+                        sellPrice = wallexBidPriceToman,
                         profitPercentage = profitPercentage,
                         profit = profit
                     )
@@ -82,12 +89,12 @@ class ArbitrageService(
             }
 
             ArbitrageOpportunity(
-                symbol = "${destination}/${source}",
+                symbol = "$asset/TMN",
                 opportunities = opportunities,
                 hasOpportunity = opportunities.isNotEmpty()
             )
         }.doOnError { error ->
-            logger.error("Error calculating arbitrage", error)
+            logger.error("Error calculating arbitrage for $asset", error)
         }
     }
 }

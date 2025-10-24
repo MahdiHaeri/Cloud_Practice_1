@@ -16,3 +16,10 @@ scrape_configs:
         labels:
           application: 'CloudServer'
           environment: 'production'
+
+  - job_name: 'metrics'
+    metrics_path: '/api/metrics'
+    scrape_interval: 5s
+    static_configs:
+      #      - targets: ['cloudserver:8080']
+      - targets: ['host.docker.internal:8080']

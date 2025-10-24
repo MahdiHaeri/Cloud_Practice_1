@@ -14,7 +14,8 @@ import java.math.RoundingMode
 @Service
 class ArbitrageService(
     private val wallexService: WallexService,
-    private val nobitexService: NobitexService
+    private val nobitexService: NobitexService,
+    private val metricsService: MetricsService
 ) {
 
     private val logger = LoggerFactory.getLogger(ArbitrageService::class.java)
@@ -28,6 +29,9 @@ class ArbitrageService(
      */
     fun calculateArbitrage(asset: TokenEnum): Mono<ArbitrageOpportunity> {
         logger.info("Calculating arbitrage for $asset between Wallex and Nobitex")
+
+        // Record that we're performing an arbitrage check
+        metricsService.recordArbitrageCheck()
 
         val wallexData = wallexService.getMarkets()
         val wallexSymbol = "${asset}TMN"
@@ -53,6 +57,14 @@ class ArbitrageService(
             logger.info("Wallex ($wallexSymbol) - Bid: $wallexBidPriceToman TMN, Ask: $wallexAskPriceToman TMN")
             logger.info("Nobitex ($nobitexSymbol) - Bid: $nobitexBidPrice TMN (${nobitexBidPriceRial} IRT), Ask: $nobitexAskPrice TMN (${nobitexAskPriceRial} IRT)")
 
+            // Update latest prices in metrics
+            metricsService.updateLatestPrices(
+                wallexBidPriceToman,
+                wallexAskPriceToman,
+                nobitexBidPrice,
+                nobitexAskPrice
+            )
+
             // Calculate arbitrage opportunities
             val opportunities = mutableListOf<ArbitrageDetail>()
 
@@ -71,6 +83,16 @@ class ArbitrageService(
                         profit = profit
                     )
                 )
+
+                // Record metrics for this opportunity
+                metricsService.recordArbitrageDiscovery(
+                    wallexBidPriceToman,
+                    wallexAskPriceToman,
+                    nobitexBidPrice,
+                    nobitexAskPrice,
+                    profitPercentage,
+                    profit
+                )
             }
 
             // Opportunity 2: Buy from Nobitex, Sell on Wallex
@@ -87,6 +109,16 @@ class ArbitrageService(
                         profitPercentage = profitPercentage,
                         profit = profit
                     )
+                )
+
+                // Record metrics for this opportunity
+                metricsService.recordArbitrageDiscovery(
+                    wallexBidPriceToman,
+                    wallexAskPriceToman,
+                    nobitexBidPrice,
+                    nobitexAskPrice,
+                    profitPercentage,
+                    profit
                 )
             }
 

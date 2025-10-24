@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-data class NobitexOrderbookResponse(
+data class NobitexOrderbookResponseDto(
     val status: String?,
     val bids: List<List<String>>?,
     val asks: List<List<String>>?,

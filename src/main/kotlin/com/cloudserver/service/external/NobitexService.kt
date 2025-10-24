@@ -1,8 +1,8 @@
 package com.cloudserver.service.external
 
-import com.cloudserver.dto.NobitexOrderbookResponse
+import com.cloudserver.dto.NobitexOrderbookResponseDto
 import com.cloudserver.enums.TokenEnum
-import org.slf4j.Logger
+import com.cloudserver.service.MetricsService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
@@ -10,7 +10,8 @@ import reactor.core.publisher.Mono
 
 @Component
 class NobitexService(
-    private val webClientBuilder:  WebClient.Builder
+    private val webClientBuilder: WebClient.Builder,
+    private val metricsService: MetricsService
 ) : ExternalExchange {
 
     private val logger = LoggerFactory.getLogger(NobitexService::class.java)
@@ -18,13 +19,10 @@ class NobitexService(
     private val domain = "https://apiv2.nobitex.ir"
     private val webClient = webClientBuilder.baseUrl(domain).build()
 
-
     override fun getExchangePrice(source: TokenEnum, destination: TokenEnum, precision: Int) {
         logger.info("Getting exchange price for $source to $destination")
         try {
-            // Nobitex API expects symbols in format like BTCIRT, ETHIRT, USDTIRT
-            // For crypto pairs, the quote currency should be IRT (Iranian Rial) or similar
-            val symbol = "${destination}${source}"  // Reversed order: destination first, then source
+            val symbol = "${destination}${source}"
             val response = getOrderbook(symbol).block()
             response?.let { orderbook ->
                 val bestBid = orderbook.bids?.firstOrNull()?.get(0)
@@ -36,17 +34,12 @@ class NobitexService(
         }
     }
 
-    /**
-     * Get orderbook data for a specific symbol from Nobitex
-     * API: GET /v3/orderbook/{symbol}
-     * Example: BTCIRT, ETHIRT, USDTIRT
-     */
-    fun getOrderbook(symbol: String): Mono<NobitexOrderbookResponse> {
+    fun getOrderbook(symbol: String): Mono<NobitexOrderbookResponseDto> {
         logger.debug("Fetching orderbook for symbol: $symbol from Nobitex")
         return webClient.get()
             .uri("/v3/orderbook/$symbol")
             .retrieve()
-            .bodyToMono(NobitexOrderbookResponse::class.java)
+            .bodyToMono(NobitexOrderbookResponseDto::class.java)
             .doOnError { error ->
                 logger.error("Error calling Nobitex orderbook API for symbol: $symbol", error)
             }
@@ -55,7 +48,7 @@ class NobitexService(
     /**
      * Get orderbook for a token pair
      */
-    fun getOrderbookForPair(source: TokenEnum, destination: TokenEnum): Mono<NobitexOrderbookResponse> {
+    fun getOrderbookForPair(source: TokenEnum, destination: TokenEnum): Mono<NobitexOrderbookResponseDto> {
         val symbol = "${source}${destination}"
         return getOrderbook(symbol)
     }

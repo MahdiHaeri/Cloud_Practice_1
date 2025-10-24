@@ -2,6 +2,7 @@ package com.cloudserver.service.external
 
 import com.cloudserver.dto.WallexMarketResponse
 import com.cloudserver.enums.TokenEnum
+import com.cloudserver.service.MetricsService
 import org.springframework.http.codec.ClientCodecConfigurer
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.ExchangeStrategies
@@ -10,7 +11,8 @@ import reactor.core.publisher.Mono
 
 @Component
 class WallexService(
-    private val webClientBuilder: WebClient.Builder
+    private val webClientBuilder: WebClient.Builder,
+    private val metricsService: MetricsService
 ) : ExternalExchange {
 
     private val logger = org.slf4j.LoggerFactory.getLogger(WallexService::class.java)
@@ -44,7 +46,7 @@ class WallexService(
                     val askPrice = marketData.fairPrice?.ask ?: marketData.price
                     logger.info("Market data for $symbol: bidPrice=$bidPrice, askPrice=$askPrice, lastPrice=${marketData.price}")
                 } ?: run {
-                    logger.warn("Symbol $symbol not found in Wallex markets. Available symbols: ${markets.take(5).mapNotNull { it.symbol }}")
+                    logger.warn("Symbol $symbol not found in Wallex markets")
                 }
             }
         } catch (e: Exception) {

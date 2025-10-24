@@ -1,0 +1,47 @@
+# Build output
+build/
+target/
+bin/
+out/
+*.log
+
+# Gradle
+.gradle/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.DS_Store
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Data directories
+data/
+
+# Documentation
+README.md
+HELP.md
+*.md
+
+# Prometheus config
+prometheus.yml
+
+# Docker Compose
+docker-compose.yaml
+
+# Temporary files
+*.tmp
+*.swp
+*.swo
+*~
+

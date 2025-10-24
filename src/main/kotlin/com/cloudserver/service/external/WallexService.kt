@@ -2,7 +2,9 @@ package com.cloudserver.service.external
 
 import com.cloudserver.dto.WallexMarketResponse
 import com.cloudserver.enums.TokenEnum
+import org.springframework.http.codec.ClientCodecConfigurer
 import org.springframework.stereotype.Component
+import org.springframework.web.reactive.function.client.ExchangeStrategies
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
 
@@ -14,7 +16,18 @@ class WallexService(
     private val logger = org.slf4j.LoggerFactory.getLogger(WallexService::class.java)
 
     private val domain = "https://api.wallex.ir"
-    private val webClient = webClientBuilder.baseUrl(domain).build()
+
+    // Configure WebClient with increased buffer size (5MB) to handle large responses
+    private val webClient = webClientBuilder
+        .baseUrl(domain)
+        .exchangeStrategies(
+            ExchangeStrategies.builder()
+                .codecs { codecs: ClientCodecConfigurer ->
+                    codecs.defaultCodecs().maxInMemorySize(5 * 1024 * 1024) // 5 MB
+                }
+                .build()
+        )
+        .build()
 
     override fun getExchangePrice(source: TokenEnum, destination: TokenEnum, precision: Int) {
         logger.info("Getting exchange price for $source to $destination")

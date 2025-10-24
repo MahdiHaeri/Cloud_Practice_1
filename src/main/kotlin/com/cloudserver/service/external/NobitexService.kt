@@ -22,7 +22,9 @@ class NobitexService(
     override fun getExchangePrice(source: TokenEnum, destination: TokenEnum, precision: Int) {
         logger.info("Getting exchange price for $source to $destination")
         try {
-            val symbol = "${source}${destination}"
+            // Nobitex API expects symbols in format like BTCIRT, ETHIRT, USDTIRT
+            // For crypto pairs, the quote currency should be IRT (Iranian Rial) or similar
+            val symbol = "${destination}${source}"  // Reversed order: destination first, then source
             val response = getOrderbook(symbol).block()
             response?.let { orderbook ->
                 val bestBid = orderbook.bids?.firstOrNull()?.get(0)

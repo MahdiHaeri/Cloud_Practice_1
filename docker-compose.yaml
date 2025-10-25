@@ -15,12 +15,12 @@ services:
   metabase_postgres:
     image: postgres:15
     container_name: postgres_metabase
-    ports:
-      - "5433:5432" # Exposing a different port for Metabase PostgreSQL
     environment:
       POSTGRES_USER: metabase_user
       POSTGRES_PASSWORD: metabase_password
       POSTGRES_DB: metabase_db
+    ports:
+      - "5433:5432" # Exposing a different port for Metabase PostgreSQL
     volumes:
       - ./data/metabase_data:/var/lib/postgresql/data
 

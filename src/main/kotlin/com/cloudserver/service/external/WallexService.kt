@@ -2,6 +2,7 @@ package com.cloudserver.service.external
 
 import com.cloudserver.dto.WallexMarketResponse
 import com.cloudserver.enums.TokenEnum
+import com.cloudserver.service.ExchangePriceService
 import com.cloudserver.service.MetricsService
 import org.springframework.http.codec.ClientCodecConfigurer
 import org.springframework.stereotype.Component
@@ -12,7 +13,8 @@ import reactor.core.publisher.Mono
 @Component
 class WallexService(
     private val webClientBuilder: WebClient.Builder,
-    private val metricsService: MetricsService
+    private val metricsService: MetricsService,
+    private val exchangePriceService: ExchangePriceService
 ) : ExternalExchange {
 
     private val logger = org.slf4j.LoggerFactory.getLogger(WallexService::class.java)
@@ -68,9 +70,36 @@ class WallexService(
             .bodyToMono(WallexMarketResponse::class.java)
             .doOnSuccess { response ->
                 val duration = System.nanoTime() - startTime
+                val durationMs = duration / 1_000_000
                 metricsService.recordWallexResponseTime(duration)
                 metricsService.recordWallexSuccess()
-                logger.debug("Successfully fetched Wallex markets in ${duration / 1_000_000}ms")
+                logger.debug("Successfully fetched Wallex markets in ${durationMs}ms")
+
+                // Save all market prices to database
+                try {
+                    response.result?.markets?.forEach { market ->
+                        val symbol = market.symbol ?: return@forEach
+                        val bidPrice = market.fairPrice?.bid?.toBigDecimalOrNull() ?: market.price?.toBigDecimalOrNull()
+                        val askPrice = market.fairPrice?.ask?.toBigDecimalOrNull() ?: market.price?.toBigDecimalOrNull()
+                        val lastPrice = market.price?.toBigDecimalOrNull()
+
+                        // Extract asset from symbol (e.g., "BTCTMN" -> "BTC")
+                        val asset = symbol.replace("TMN", "")
+
+                        exchangePriceService.saveExchangePrice(
+                            exchange = "Wallex",
+                            symbol = symbol,
+                            asset = asset,
+                            quoteCurrency = "TMN",
+                            bidPrice = bidPrice,
+                            askPrice = askPrice,
+                            lastPrice = lastPrice,
+                            responseTimeMs = durationMs
+                        )
+                    }
+                } catch (e: Exception) {
+                    logger.error("Error saving Wallex prices to database", e)
+                }
             }
             .doOnError { error ->
                 val duration = System.nanoTime() - startTime

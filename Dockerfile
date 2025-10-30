@@ -49,5 +49,20 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
 # Set JVM options for optimal container performance
 ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
 
+# Environment variables (with defaults for non-sensitive values)
+# These can be overridden at runtime via docker-compose or docker run -e
+ENV SERVER_PORT=8080 \
+    DB_HOST=postgres \
+    DB_PORT=5432 \
+    DB_NAME=postgres \
+    WALLEX_BASE_URL=https://api.wallex.ir \
+    NOBITEX_BASE_URL=https://apiv2.nobitex.ir
+
+# IMPORTANT: These MUST be provided at runtime (no defaults for security):
+# - DB_USERNAME
+# - DB_PASSWORD
+# - TELEGRAM_BOT_TOKEN
+# - TELEGRAM_BOT_USERNAME
+
 # Run the application
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
